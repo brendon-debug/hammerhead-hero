@@ -114,6 +114,60 @@ export const ITEMS: Record<string, Item> = {
     sprite: '🌿',
     stats: { hp: 100 }
   },
+  sea_grapes: {
+    id: 'sea_grapes',
+    name: 'Sea Grapes',
+    type: 'consumable',
+    value: 25,
+    description: 'Crunchy grapes that boost your strength. Grants +10 Attack for this battle.',
+    sprite: '🍇',
+    stats: { attack: 10 }
+  },
+  glowing_kelp: {
+    id: 'glowing_kelp',
+    name: 'Glowing Kelp',
+    type: 'consumable',
+    value: 25,
+    description: 'Bioluminescent kelp that hardens your skin. Grants +10 Defense for this battle.',
+    sprite: '🎋',
+    stats: { defense: 10 }
+  },
+  spicy_coral: {
+    id: 'spicy_coral',
+    name: 'Spicy Coral',
+    type: 'consumable',
+    value: 50,
+    description: 'Extremely spicy! Grants +25 Attack for this battle.',
+    sprite: '🌶️',
+    stats: { attack: 25 }
+  },
+  bubble_soda: {
+    id: 'bubble_soda',
+    name: 'Bubble Soda',
+    type: 'consumable',
+    value: 30,
+    description: 'Refreshing bubbles. Restores 50 HP and grants +5 Defense for this battle.',
+    sprite: '🥤',
+    stats: { hp: 50, defense: 5 }
+  },
+  starfish_cookie: {
+    id: 'starfish_cookie',
+    name: 'Starfish Cookie',
+    type: 'consumable',
+    value: 60,
+    description: 'A lucky treat. Grants +15 Attack and +15 Defense for this battle.',
+    sprite: '🍪',
+    stats: { attack: 15, defense: 15 }
+  },
+  electric_jerky: {
+    id: 'electric_jerky',
+    name: 'Electric Jerky',
+    type: 'consumable',
+    value: 80,
+    description: 'Shockingly delicious. Grants +40 Attack for this battle.',
+    sprite: '⚡',
+    stats: { attack: 40 }
+  },
   ancient_ring: {
     id: 'ancient_ring',
     name: 'Ancient Ring',
@@ -356,14 +410,14 @@ export const TOWNS: WorldMap[] = [
         type: 'portal',
         name: 'Quest Portal',
         pos: { x: 14, y: 10 },
-        sprite: '🟢'
+        sprite: '🌀'
       },
       {
         id: 'portal_tests',
         type: 'portal',
         name: 'To Coral Castle',
         pos: { x: 15, y: 10 },
-        sprite: '🔴'
+        sprite: '🌀'
       }
     ]
   }
@@ -470,7 +524,7 @@ addEntity1({
   name: 'Goblin Queen',
   pos: bossPos1,
   stats: { hp: 400, maxHp: 400, attack: 50, defense: 10, level: 5, exp: 500, gold: 200 },
-  sprite: '👑',
+  sprite: '👺',
   loot: [ITEMS.steel_blade]
 });
 
@@ -484,7 +538,7 @@ for(let i=0; i<3; i++) {
     type: 'chest',
     name: 'Treasure Chest',
     pos: pos,
-    sprite: '📦',
+    sprite: '🎁',
     loot: [ITEMS.kelp, Math.random() > 0.5 ? ITEMS.leather_armor : ITEMS.rusty_sword]
   });
 }
@@ -559,7 +613,7 @@ for(let i=0; i<3; i++) {
     type: 'chest',
     name: 'Treasure Chest',
     pos: pos,
-    sprite: '📦',
+    sprite: '🎁',
     loot: [i === 0 ? ITEMS.ancient_ring : ITEMS.kelp, Math.random() > 0.5 ? ITEMS.kelp : ITEMS.kelp]
   });
 }
@@ -576,7 +630,7 @@ for(let i=0; i<20; i++) {
     name: 'Hobgoblin',
     pos: pos,
     stats: { hp: 80, maxHp: 80, attack: 20, defense: 4, level: 5, exp: 150, gold: 50 },
-    sprite: '👹',
+    sprite: '👺',
     loot: Math.random() > 0.5 ? [ITEMS.kelp] : []
   });
 }
@@ -625,7 +679,7 @@ addEntityAbyss({
   stats: { hp: 5000, maxHp: 5000, attack: 500, defense: 300, level: 25, exp: 15000, gold: 5000 },
   element: 'ice',
   resistances: { ice: 0.5, fire: 2.0 },
-  sprite: '🐡', // Back to a fish but with the purple aura
+  sprite: '👹', // Back to a fish but with the purple aura
   loot: []
 });
 
@@ -638,7 +692,7 @@ for(let i=0; i<3; i++) {
     type: 'chest',
     name: 'Treasure Chest',
     pos: pos,
-    sprite: '📦',
+    sprite: '🎁',
     loot: [ITEMS.kelp, ITEMS.kelp]
   });
 }
@@ -705,7 +759,7 @@ addEntity3({
   stats: { hp: 2400, maxHp: 2400, attack: 150, defense: 45, level: 18, exp: 8000, gold: 3000 },
   element: 'fire',
   resistances: { fire: 0.5, ice: 2.0 },
-  sprite: '🐉',
+  sprite: '🐲',
   loot: [ITEMS.poison_steel_sword]
 });
 
@@ -718,7 +772,7 @@ for(let i=0; i<4; i++) {
     type: 'chest',
     name: 'Treasure Chest',
     pos: pos,
-    sprite: '📦',
+    sprite: '🎁',
     loot: [ITEMS.kelp, ITEMS.kelp]
   });
 }

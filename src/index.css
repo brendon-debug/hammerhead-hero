@@ -56,6 +56,11 @@
   animation: boss-vibrate 0.2s infinite;
 }
 
+.bob-green-aura {
+  filter: drop-shadow(0 0 35px #22c55e) hue-rotate(90deg) saturate(2) brightness(1.2);
+  animation: boss-vibrate 0.3s infinite;
+}
+
 .tide-attack-trail {
   position: absolute;
   width: 150px;

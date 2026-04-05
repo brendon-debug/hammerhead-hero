@@ -4,9 +4,18 @@ import { TILE_SIZE } from '../constants';
 import { Position, WorldMap, Entity, Item } from '../types';
 import { sounds } from '../lib/sounds';
 
+interface OtherPlayer {
+  id: string;
+  name: string;
+  level: number;
+  pos: { x: number; y: number };
+  mapId: string;
+}
+
 interface GameCanvasProps {
   map: WorldMap;
   playerPos: Position;
+  otherPlayers?: OtherPlayer[];
   azeranJoined?: boolean;
   finneganJoined?: boolean;
   equippedWeapon?: Item | null;
@@ -15,7 +24,7 @@ interface GameCanvasProps {
   onInteract: (entity: Entity) => void;
 }
 
-export const GameCanvas: React.FC<GameCanvasProps> = ({ map, playerPos, azeranJoined, finneganJoined, equippedWeapon, secondaryWeapon, onMove, onInteract }) => {
+export const GameCanvas: React.FC<GameCanvasProps> = ({ map, playerPos, otherPlayers = [], azeranJoined, finneganJoined, equippedWeapon, secondaryWeapon, onMove, onInteract }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [moveHistory, setMoveHistory] = useState<Position[]>([playerPos]);
 
@@ -128,6 +137,12 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ map, playerPos, azeranJo
       if (finneganJoined && moveHistory.length > 2) {
         visibleEntities.push({ type: 'companion', sprite: '🦈', pos: moveHistory[moveHistory.length - 3] });
       }
+
+      // Add other players
+      otherPlayers.forEach(p => {
+        visibleEntities.push({ type: 'other_player', sprite: '🦈', pos: p.pos, id: p.id });
+      });
+
       visibleEntities.push({ type: 'player', sprite: '🦈', pos: playerPos });
       visibleEntities.sort((a, b) => a.pos.y - b.pos.y);
 
@@ -172,6 +187,21 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ map, playerPos, azeranJo
           ctx.shadowColor = '#fb923c';
           ctx.shadowBlur = 10;
           ctx.fillText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
+          ctx.restore();
+        } else if (entity.type === 'other_player') {
+          ctx.save();
+          ctx.shadowColor = '#0ea5e9';
+          ctx.shadowBlur = 15;
+          ctx.fillText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
+          
+          // Draw name tag
+          const otherPlayer = otherPlayers.find(p => p.id === entity.id);
+          if (otherPlayer) {
+            ctx.font = 'bold 12px sans-serif';
+            ctx.fillStyle = 'white';
+            ctx.shadowBlur = 0;
+            ctx.fillText(otherPlayer.name, drawX, drawY - 25);
+          }
           ctx.restore();
         } else {
           ctx.fillText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);

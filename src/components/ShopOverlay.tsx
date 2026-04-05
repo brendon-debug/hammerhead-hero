@@ -64,9 +64,15 @@ export const ShopOverlay: React.FC<ShopOverlayProps> = ({
                   className="bg-slate-800/30 border border-slate-700 p-4 rounded-xl flex items-center justify-between group hover:bg-slate-800/50 transition-all"
                 >
                   <div className="flex items-center gap-4">
-                    <span className={`text-3xl ${item.id === 'poison_steel_sword' ? 'poison-sword-tint' : ''}`}>
-                      {item.sprite}
-                    </span>
+                    <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
+                      {item.sprite.startsWith('http') ? (
+                        <img src={item.sprite} alt={item.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                      ) : (
+                        <span className={`text-3xl ${item.id === 'poison_steel_sword' ? 'poison-sword-tint' : ''}`}>
+                          {item.sprite}
+                        </span>
+                      )}
+                    </div>
                     <div>
                       <p className="text-white font-bold text-sm">{item.name}</p>
                       <p className="text-slate-500 text-xs">{item.description}</p>
@@ -103,9 +109,15 @@ export const ShopOverlay: React.FC<ShopOverlayProps> = ({
                     className="bg-slate-800/30 border border-slate-700 p-4 rounded-xl flex items-center justify-between group hover:bg-slate-800/50 transition-all"
                   >
                     <div className="flex items-center gap-4">
-                      <span className={`text-3xl ${item.id === 'poison_steel_sword' ? 'poison-sword-tint' : ''}`}>
-                        {item.sprite}
-                      </span>
+                      <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
+                        {item.sprite.startsWith('http') ? (
+                          <img src={item.sprite} alt={item.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                        ) : (
+                          <span className={`text-3xl ${item.id === 'poison_steel_sword' ? 'poison-sword-tint' : ''}`}>
+                            {item.sprite}
+                          </span>
+                        )}
+                      </div>
                       <div>
                         <p className="text-white font-bold text-sm">{item.name}</p>
                         <p className="text-slate-500 text-xs">Value: {Math.floor(item.value / 2)} gold</p>

@@ -89,15 +89,6 @@ export const CombatOverlay: React.FC<CombatOverlayProps> = ({
     }
     if (mapId === 'dungeon_abyss') {
       initialHazards.push({
-        id: 'current_1',
-        name: 'Abyssal Current',
-        sprite: '🌀',
-        description: 'Randomly shifts the battlefield!',
-        type: 'current',
-        active: true,
-        cooldown: 0
-      });
-      initialHazards.push({
         id: 'ink_1',
         name: 'Abyssal Ink',
         sprite: '🦑',
@@ -199,13 +190,39 @@ export const CombatOverlay: React.FC<CombatOverlayProps> = ({
   const useConsumable = (item: Item) => {
     if (isAnimating || playerHp <= 0) return;
     
+    let used = false;
+    let logMsg = `You consume ${item.name}`;
+
     if (item.stats?.hp) {
       sounds.playHeal();
       const healAmount = item.stats.hp;
       setPlayerHp(prev => Math.min(playerStats.maxHp, prev + healAmount));
-      setLog(prev => [`You consume ${item.name} and restore ${healAmount} HP!`, ...prev]);
+      logMsg += ` and restore ${healAmount} HP`;
       setSpecialEffect('heal');
       setDamagePopup({ value: healAmount, type: 'heal' });
+      used = true;
+    }
+
+    if (item.stats?.attack) {
+      if (!used) sounds.playHeal();
+      const boost = item.stats.attack;
+      setBonusDamage(prev => prev + boost);
+      logMsg += `${used ? ',' : ''} and gain +${boost} Attack`;
+      setSpecialEffect('ability');
+      used = true;
+    }
+
+    if (item.stats?.defense) {
+      if (!used) sounds.playHeal();
+      const boost = item.stats.defense;
+      setBonusDefense(prev => prev + boost);
+      logMsg += `${used ? ',' : ''} and gain +${boost} Defense`;
+      setSpecialEffect('ability');
+      used = true;
+    }
+
+    if (used) {
+      setLog(prev => [`${logMsg} for this battle!`, ...prev]);
       setTimeout(() => {
         setSpecialEffect('none');
         setDamagePopup(null);
@@ -297,44 +314,6 @@ export const CombatOverlay: React.FC<CombatOverlayProps> = ({
       setDamagePopup(null);
       setSpecialEffect('none');
     }, 400);
-
-    // Random Current Hazard in Abyss
-    if (mapId === 'dungeon_abyss' && Math.random() < 0.2) {
-      const currentDmg = 50;
-      const targetPlayer = Math.random() > 0.5;
-      setSpecialEffect('hazard');
-      setIsShaking(true);
-      if (targetPlayer) {
-        const nextPlayerHp = Math.max(0, playerHp - currentDmg);
-        setPlayerHp(nextPlayerHp);
-        setPlayerAnimation('hit');
-        setDamagePopup({ value: currentDmg, type: 'player' });
-        setLog(prev => ["The Abyssal Current slams into you!", ...prev]);
-        if (nextPlayerHp <= 0) {
-          sounds.playDeath();
-          onDefeat();
-          return;
-        }
-      } else {
-        const nextEnemyHp = Math.max(0, enemyHp - currentDmg);
-        setEnemyHp(nextEnemyHp);
-        setEnemyAnimation('hit');
-        setDamagePopup({ value: currentDmg, type: 'enemy' });
-        setLog(prev => ["The Abyssal Current slams into the enemy!", ...prev]);
-        if (nextEnemyHp <= 0) {
-          setTimeout(() => {
-            onVictory(enemy.stats?.exp || 0, enemy.stats?.gold || 0, playerHp);
-          }, 1000);
-          return;
-        }
-      }
-      sounds.playTideAttack();
-      setTimeout(() => {
-        setDamagePopup(null);
-        setSpecialEffect('none');
-        setIsShaking(false);
-      }, 800);
-    }
 
     // Reduce cooldowns
     setHazards(prev => prev.map(h => h.cooldown > 0 ? { ...h, cooldown: h.cooldown - 1, active: h.cooldown - 1 === 0 ? true : h.active } : h));
@@ -623,7 +602,11 @@ export const CombatOverlay: React.FC<CombatOverlayProps> = ({
                     }`}
                     title={hazard.description}
                   >
-                    <span className="text-2xl">{hazard.sprite}</span>
+                    {hazard.sprite.startsWith('http') ? (
+                      <img src={hazard.sprite} alt={hazard.name} className="w-10 h-10 object-contain" referrerPolicy="no-referrer" />
+                    ) : (
+                      <span className="text-2xl">{hazard.sprite}</span>
+                    )}
                     {hazard.cooldown > 0 && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-lg">
                         <span className="text-xs font-bold text-white">{hazard.cooldown}</span>
@@ -666,7 +649,11 @@ export const CombatOverlay: React.FC<CombatOverlayProps> = ({
                   <div className="space-y-3">
                     {hazards.map(hazard => (
                       <div key={hazard.id} className="flex gap-3">
-                        <span className="text-xl shrink-0">{hazard.sprite}</span>
+                    {hazard.sprite.startsWith('http') ? (
+                      <img src={hazard.sprite} alt={hazard.name} className="w-8 h-8 object-contain shrink-0" referrerPolicy="no-referrer" />
+                    ) : (
+                      <span className="text-xl shrink-0">{hazard.sprite}</span>
+                    )}
                         <div>
                           <div className="text-[10px] font-bold text-white uppercase">{hazard.name}</div>
                           <div className="text-[9px] text-slate-400 leading-tight">{hazard.description}</div>
@@ -725,8 +712,8 @@ export const CombatOverlay: React.FC<CombatOverlayProps> = ({
                   className="absolute inset-0 bg-amber-400/30 blur-2xl rounded-full -z-10"
                 />
               )}
-              <div className="text-8xl mb-2 relative">
-                🦈
+              <div className="w-32 h-32 mb-2 relative flex items-center justify-center">
+                <span className="text-8xl">🦈</span>
                 {consecutiveParries > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -741,18 +728,18 @@ export const CombatOverlay: React.FC<CombatOverlayProps> = ({
                 <motion.div 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="text-5xl mb-2"
+                  className="w-16 h-16 mb-2 flex items-center justify-center"
                 >
-                  🐱
+                  <span className="text-5xl">🐱</span>
                 </motion.div>
               )}
               {finneganJoined && (
                 <motion.div 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  className="text-5xl mb-2"
+                  className="w-16 h-16 mb-2 flex items-center justify-center"
                 >
-                  🦈
+                  <span className="text-5xl">🦈</span>
                 </motion.div>
               )}
               <AnimatePresence>
@@ -846,17 +833,35 @@ export const CombatOverlay: React.FC<CombatOverlayProps> = ({
                   specialEffect === 'hazard' ? { x: [0, 10, -10, 10, -10, 0], scale: [1, 1.2, 1], filter: ['brightness(1)', 'brightness(2) saturate(2) hue-rotate(180deg)', 'brightness(1)'] } :
                   { x: [0, 5, -5, 5, -5, 0], scale: [1, 1.15, 1], filter: ['brightness(1)', 'brightness(2) saturate(4) hue-rotate(340deg) drop-shadow(0 0 25px #ff0000)', 'brightness(1)'] }
                 ) :
-                { x: 0, filter: 'brightness(1)' }
+                { 
+                  x: 0, 
+                  y: [0, -10, 0],
+                  filter: 'brightness(1)' 
+                }
               }
-              transition={{ duration: enemyAnimation === 'hit' ? 0.2 : (specialEffect === 'ability' ? 0.5 : 0.4) }}
-              className={`text-8xl mb-2 relative ${enemyAnimation === 'hit' ? 'flash-white' : ''} ${
+              transition={
+                enemyAnimation === 'idle' ? 
+                { duration: 2, repeat: Infinity, ease: "easeInOut" } :
+                { duration: enemyAnimation === 'hit' ? 0.2 : (specialEffect === 'ability' ? 0.5 : 0.4) }
+              }
+              className={`w-40 h-40 mb-2 relative flex items-center justify-center ${enemyAnimation === 'hit' ? 'flash-white' : ''} ${
                 enemy.id === 'boss_fish' ? 'boss-evil-aura' : 
+                enemy.id === 'boss_3' ? 'bob-green-aura' :
                 (enemy.type === 'goblin' || enemy.type === 'hobgoblin') ? 'red-goblin-tint' : ''
               }`}
             >
               {specialEffect === 'ability' && <div className="ability-aura" style={{ borderColor: '#f87171' }} />}
               {specialEffect === 'fire' && <div className="lava-burst" />}
-              {enemy.sprite}
+              {enemy.sprite?.startsWith('http') ? (
+                <img 
+                  src={enemy.sprite} 
+                  alt={enemy.name} 
+                  className="w-full h-full object-contain"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span className="text-8xl">{enemy.sprite}</span>
+              )}
               <AnimatePresence>
                 {damagePopup?.type === 'enemy' && (
                   <motion.div

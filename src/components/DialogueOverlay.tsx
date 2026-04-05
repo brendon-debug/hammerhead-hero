@@ -36,7 +36,13 @@ export const DialogueOverlay: React.FC<DialogueOverlayProps> = ({ entity, onClos
       >
         <div className="bg-slate-900 border-2 border-slate-700 rounded-xl p-6 shadow-2xl text-white">
           <div className="flex items-center gap-4 mb-4">
-            <div className="text-4xl bg-slate-800 p-2 rounded-lg">{entity.sprite}</div>
+            <div className="w-16 h-16 bg-slate-800 p-2 rounded-lg flex items-center justify-center overflow-hidden">
+              {entity.sprite?.startsWith('http') ? (
+                <img src={entity.sprite} alt={entity.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+              ) : (
+                <span className="text-4xl">{entity.sprite}</span>
+              )}
+            </div>
             <div>
               <h3 className="text-xl font-bold text-emerald-400">{entity.name}</h3>
               <p className="text-slate-400 text-sm italic uppercase">{entity.type}</p>

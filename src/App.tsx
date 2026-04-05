@@ -10,8 +10,11 @@ import { StoryOverlay } from './components/StoryOverlay';
 import { GameState, Position, Stats, WorldMap, Entity, Item, Quest } from './types';
 import { INITIAL_PLAYER_STATS, TOWNS, DUNGEONS, DUNGEON_2, DUNGEON_ABYSS, DUNGEON_3, CORAL_CASTLE, QUESTS, ITEMS, FUNNY_DEATH_MESSAGES, SHARK_JOKES } from './constants';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sword, Shield, Trophy, Skull, Ghost, Volume2, VolumeX } from 'lucide-react';
+import { Sword, Shield, Trophy, Skull, Ghost, Volume2, VolumeX, LogIn, LogOut, Users } from 'lucide-react';
 import { sounds } from './lib/sounds';
+import { auth, db, googleProvider, signInWithPopup, onAuthStateChanged, collection, doc, setDoc, getDoc, onSnapshot, query, where, limit, orderBy, getDocs, serverTimestamp, User, handleFirestoreError, OperationType } from './firebase';
+import { Leaderboard } from './components/Leaderboard';
+import { Multiplayer } from './components/Multiplayer';
 
 export default function App() {
   const [gameState, setGameState] = useState<GameState>('start');
@@ -57,10 +60,157 @@ export default function App() {
   const [sharkJoke, setSharkJoke] = useState("");
   const [isMuted, setIsMuted] = useState(false);
 
+  // Firebase States
+  const [user, setUser] = useState<User | null>(null);
+  const [onlinePlayers, setOnlinePlayers] = useState<any[]>([]);
+  const [leaderboardScores, setLeaderboardScores] = useState<any[]>([]);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+
+  // Handle Auth
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      if (u) {
+        // Initial sync of player data if logged in
+        syncPlayerData(u.uid, playerStats, playerPos, currentMapId);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Sync player position and stats to Firestore
+  const syncPlayerData = async (uid: string, stats: Stats, pos: Position, mapId: string) => {
+    if (!user) return;
+    const path = `players/${uid}`;
+    try {
+      await setDoc(doc(db, 'players', uid), {
+        name: user.displayName || 'Anonymous Shark',
+        level: stats.level,
+        gold: stats.gold,
+        pos,
+        mapId,
+        lastSeen: serverTimestamp()
+      }, { merge: true });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, path);
+    }
+  };
+
+  // Update Firestore when player moves or stats change
+  useEffect(() => {
+    if (user && gameState === 'playing') {
+      const timeout = setTimeout(() => {
+        syncPlayerData(user.uid, playerStats, playerPos, currentMapId);
+      }, 500); // Debounce sync
+      return () => clearTimeout(timeout);
+    }
+  }, [playerPos, playerStats.level, playerStats.gold, currentMapId, user, gameState]);
+
+  // Listen for other players
+  useEffect(() => {
+    if (!user) return;
+    const q = query(
+      collection(db, 'players'),
+      where('lastSeen', '>', new Date(Date.now() - 60000)), // Active in last minute
+      limit(20)
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const players = snapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter(p => p.id !== user.uid);
+      setOnlinePlayers(players);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'players');
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  // Fetch Leaderboard
+  const fetchLeaderboard = async () => {
+    try {
+      const q = query(collection(db, 'players'), orderBy('level', 'desc'), orderBy('gold', 'desc'), limit(10));
+      const snapshot = await getDocs(q);
+      const scores = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          name: data.name,
+          level: data.level,
+          gold: data.gold,
+          date: data.lastSeen?.toDate().toLocaleDateString() || 'Recently'
+        };
+      });
+      setLeaderboardScores(scores);
+      setShowLeaderboard(true);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.GET, 'players');
+    }
+  };
+
+  const handleLogin = async () => {
+    try {
+      await signInWithPopup(auth, googleProvider);
+      sounds.playBuy();
+    } catch (e) {
+      console.error("Login failed:", e);
+    }
+  };
+
   // Handle Mute/Unmute for SFX
   useEffect(() => {
     sounds.setMuted(isMuted);
   }, [isMuted]);
+
+  useEffect(() => {
+    if (gameState !== 'playing') return;
+
+    const moveEnemies = () => {
+      setWorldMaps(prev => {
+        const currentMap = prev[currentMapId];
+        if (!currentMap) return prev;
+
+        const newEntities = currentMap.entities.map(entity => {
+          const enemyTypes = ['goblin', 'hobgoblin', 'dragon', 'giant_crab'];
+          if (!enemyTypes.includes(entity.type) || entity.isDead) return entity;
+
+          // 30% chance to move each tick
+          if (Math.random() > 0.3) return entity;
+
+          const directions = [
+            { x: 0, y: -1 }, // Up
+            { x: 0, y: 1 },  // Down
+            { x: -1, y: 0 }, // Left
+            { x: 1, y: 0 }   // Right
+          ];
+
+          const dir = directions[Math.floor(Math.random() * directions.length)];
+          const newPos = { x: entity.pos.x + dir.x, y: entity.pos.y + dir.y };
+
+          // Check bounds
+          if (newPos.x < 0 || newPos.x >= currentMap.width || newPos.y < 0 || newPos.y >= currentMap.height) return entity;
+
+          // Check walls
+          if (currentMap.tiles[newPos.y][newPos.x] === 1) return entity;
+
+          // Check player
+          if (newPos.x === playerPos.x && newPos.y === playerPos.y) return entity;
+
+          // Check other entities
+          const otherEntity = currentMap.entities.find(e => e.id !== entity.id && !e.isDead && e.pos.x === newPos.x && e.pos.y === newPos.y);
+          if (otherEntity) return entity;
+
+          return { ...entity, pos: newPos };
+        });
+
+        return {
+          ...prev,
+          [currentMapId]: { ...currentMap, entities: newEntities }
+        };
+      });
+    };
+
+    const interval = setInterval(moveEnemies, 2000);
+    return () => clearInterval(interval);
+  }, [gameState, currentMapId, playerPos]);
 
   const handleMove = (pos: Position) => {
     setPlayerPos(pos);
@@ -78,7 +228,13 @@ export default function App() {
         setShopConfig({
           title: "THE SALTY FIN SNACKS",
           items: [
-            ITEMS.kelp
+            ITEMS.kelp,
+            ITEMS.sea_grapes,
+            ITEMS.glowing_kelp,
+            ITEMS.spicy_coral,
+            ITEMS.bubble_soda,
+            ITEMS.starfish_cookie,
+            ITEMS.electric_jerky
           ]
         });
         setGameState('shop');
@@ -372,12 +528,25 @@ export default function App() {
           sounds.playLevelUp();
         }
 
+        if (item.stats?.attack) {
+          used = true;
+          // Attack boost is handled in CombatOverlay for battle duration
+          // but we mark it as used here to remove it from inventory
+        }
+
+        if (item.stats?.defense) {
+          used = true;
+          // Defense boost is handled in CombatOverlay for battle duration
+          // but we mark it as used here to remove it from inventory
+        }
+
         return newStats;
       });
       
       if (used) {
         setInventory(prev => {
           const idx = prev.findIndex(i => i.id === item.id);
+          if (idx === -1) return prev;
           const newInv = [...prev];
           newInv.splice(idx, 1);
           return newInv;
@@ -414,7 +583,7 @@ export default function App() {
     });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const saveData = {
       playerStats,
       playerPos,
@@ -429,34 +598,67 @@ export default function App() {
       finneganJoined,
       quests
     };
-    localStorage.setItem('hammerhead_hero_save', JSON.stringify(saveData));
-    alert("Game Saved!");
+
+    if (user) {
+      const path = `saves/${user.uid}`;
+      try {
+        await setDoc(doc(db, 'saves', user.uid), {
+          ...saveData,
+          updatedAt: serverTimestamp()
+        });
+        alert("Game Saved to Cloud!");
+      } catch (e) {
+        handleFirestoreError(e, OperationType.WRITE, path);
+      }
+    } else {
+      localStorage.setItem('hammerhead_hero_save', JSON.stringify(saveData));
+      alert("Game Saved Locally! Sign in to save to the cloud.");
+    }
   };
 
-  const handleLoad = () => {
+  const handleLoad = async () => {
+    if (user) {
+      const path = `saves/${user.uid}`;
+      try {
+        const docSnap = await getDoc(doc(db, 'saves', user.uid));
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          applySaveData(data);
+          alert("Game Loaded from Cloud!");
+          return;
+        }
+      } catch (e) {
+        handleFirestoreError(e, OperationType.GET, path);
+      }
+    }
+
     const saved = localStorage.getItem('hammerhead_hero_save');
     if (saved) {
       try {
         const data = JSON.parse(saved);
-        setPlayerStats(data.playerStats);
-        setPlayerPos(data.playerPos);
-        setCurrentMapId(data.currentMapId);
-        setInventory(data.inventory);
-        setEquippedWeapon(data.equippedWeapon);
-        setSecondaryWeapon(data.secondaryWeapon);
-        setEquippedArmor(data.equippedArmor);
-        setEquippedAccessory(data.equippedAccessory);
-        setBossesDefeated(data.bossesDefeated || []);
-        setAzeranJoined(data.azeranJoined || false);
-        setFinneganJoined(data.finneganJoined || false);
-        setQuests(data.quests || Object.values(QUESTS));
-        alert("Game Loaded!");
+        applySaveData(data);
+        alert("Game Loaded from Local Storage!");
       } catch (e) {
-        alert("Error loading save data.");
+        alert("Error loading local save data.");
       }
     } else {
       alert("No save data found.");
     }
+  };
+
+  const applySaveData = (data: any) => {
+    setPlayerStats(data.playerStats);
+    setPlayerPos(data.playerPos);
+    setCurrentMapId(data.currentMapId);
+    setInventory(data.inventory);
+    setEquippedWeapon(data.equippedWeapon);
+    setSecondaryWeapon(data.secondaryWeapon);
+    setEquippedArmor(data.equippedArmor);
+    setEquippedAccessory(data.equippedAccessory);
+    setBossesDefeated(data.bossesDefeated || []);
+    setAzeranJoined(data.azeranJoined || false);
+    setFinneganJoined(data.finneganJoined || false);
+    setQuests(data.quests || Object.values(QUESTS));
   };
 
   const startGame = () => {
@@ -496,20 +698,48 @@ export default function App() {
               ))}
             </div>
 
-              <div className="relative z-30">
+              <div className="relative z-30 flex flex-col items-center gap-6">
                 <h1 className="text-6xl md:text-8xl font-black text-white mb-4 tracking-tighter drop-shadow-[0_0_20px_rgba(14,165,233,0.5)]">
                   HAMMERHEAD <span className="text-emerald-400">HERO</span>
                 </h1>
-              <p className="text-xl text-sky-200 mb-12 max-w-xl drop-shadow-md">
+              <p className="text-xl text-sky-200 mb-8 max-w-xl drop-shadow-md">
                 A sword-wielding shark in a world of goblins. 
                 Defeat the Queen, the Diamond Gorilla, Bob the Dragon, and the Corrupted Abyssal Maw.
               </p>
               
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button 
+                  onClick={startGame}
+                  className="px-12 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-2xl rounded-full shadow-lg shadow-emerald-900/40 transition-all hover:scale-105 active:scale-95 border-2 border-emerald-400/30"
+                >
+                  START ADVENTURE
+                </button>
+
+                {!user ? (
+                  <button 
+                    onClick={handleLogin}
+                    className="px-8 py-4 bg-white/10 hover:bg-white/20 text-white font-bold text-xl rounded-full backdrop-blur-md border border-white/20 transition-all flex items-center gap-2"
+                  >
+                    <LogIn size={24} />
+                    SIGN IN TO SYNC
+                  </button>
+                ) : (
+                  <div className="flex items-center gap-4 bg-white/10 px-6 py-2 rounded-full border border-white/20 backdrop-blur-md">
+                    <img src={user.photoURL || ''} alt="" className="w-10 h-10 rounded-full border-2 border-emerald-400" />
+                    <div className="text-left">
+                      <p className="text-xs text-slate-400 uppercase font-black">Logged In</p>
+                      <p className="text-sm font-bold text-white leading-none">{user.displayName}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <button 
-                onClick={startGame}
-                className="px-12 py-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-2xl rounded-full shadow-lg shadow-emerald-900/40 transition-all hover:scale-105 active:scale-95 border-2 border-emerald-400/30"
+                onClick={fetchLeaderboard}
+                className="mt-4 text-sky-400 hover:text-sky-300 font-bold flex items-center gap-2 transition-colors"
               >
-                START ADVENTURE
+                <Trophy size={20} />
+                VIEW GLOBAL LEADERBOARD
               </button>
             </div>
           </motion.div>
@@ -586,13 +816,24 @@ export default function App() {
         onInventoryOpen={() => setGameState('inventory')}
         onQuestsOpen={() => setGameState('quests')}
         onStoryOpen={() => setShowStory(true)}
+        onSave={handleSave}
+        onLoad={handleLoad}
       />
+
+      {user && gameState === 'playing' && (
+        <Multiplayer players={onlinePlayers} currentMapId={currentMapId} />
+      )}
+
+      {showLeaderboard && (
+        <Leaderboard scores={leaderboardScores} onClose={() => setShowLeaderboard(false)} />
+      )}
 
       <main className="max-w-7xl mx-auto p-4 md:p-8 flex flex-col items-center">
         <div className="w-full flex flex-col items-center gap-8">
           <GameCanvas 
             map={currentMap} 
             playerPos={playerPos} 
+            otherPlayers={onlinePlayers}
             azeranJoined={azeranJoined}
             finneganJoined={finneganJoined}
             equippedWeapon={equippedWeapon}
@@ -699,5 +940,62 @@ export default function App() {
         <StoryOverlay onClose={() => setShowStory(false)} />
       )}
     </div>
+  );
+}
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error: any }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      let errorMessage = "Something went wrong.";
+      try {
+        const parsed = JSON.parse(this.state.error.message);
+        if (parsed.error) {
+          errorMessage = `Firebase Error: ${parsed.error} (${parsed.operationType} on ${parsed.path})`;
+        }
+      } catch (e) {
+        errorMessage = this.state.error.message || String(this.state.error);
+      }
+
+      return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950 p-8 text-center">
+          <div className="max-w-md bg-slate-900 border-2 border-rose-500 p-8 rounded-3xl shadow-2xl">
+            <Skull size={64} className="text-rose-500 mx-auto mb-6" />
+            <h2 className="text-2xl font-black text-white mb-4 uppercase tracking-tighter">System Malfunction</h2>
+            <p className="text-slate-400 mb-8 font-mono text-sm bg-black/50 p-4 rounded-xl border border-slate-800 break-words">
+              {errorMessage}
+            </p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-8 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-full transition-all"
+            >
+              REBOOT SYSTEM
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+export function AppWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   );
 }

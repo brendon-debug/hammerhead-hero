@@ -1,0 +1,111 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: players
+// Document ID: {userId}
+// Fields:
+//   - name: string (required, 1-50 chars) - Display name
+//   - level: number (required, positive) - Player level
+//   - gold: number (required, non-negative) - Gold amount
+//   - pos: map (required, x/y integers) - Player position
+//   - mapId: string (required, 1-50 chars) - Current map ID
+//   - lastSeen: timestamp (required) - Last activity
+//
+// Collection: saves
+// Document ID: {userId}
+// Fields:
+//   - playerStats: map (required) - Full stats
+//   - playerPos: map (required) - Current position
+//   - currentMapId: string (required) - Current map
+//   - inventory: list (required) - List of items
+//   - equippedWeapon: map (optional)
+//   - secondaryWeapon: map (optional)
+//   - equippedArmor: map (optional)
+//   - equippedAccessory: map (optional)
+//   - bossesDefeated: list (optional)
+//   - azeranJoined: bool (optional)
+//   - finneganJoined: bool (optional)
+//   - quests: list (optional)
+//   - updatedAt: timestamp (required)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "brendon@lansingtechstudio.org" && request.auth.token.email_verified == true));
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidPlayer(data) {
+      return hasRequiredFields(['name', 'level', 'gold', 'pos', 'mapId', 'lastSeen']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 50 &&
+             data.level is int && data.level > 0 &&
+             data.gold is int && data.gold >= 0 &&
+             data.pos is map && data.pos.x is int && data.pos.y is int &&
+             data.mapId is string && data.mapId.size() > 0 && data.mapId.size() <= 50 &&
+             data.lastSeen is timestamp;
+    }
+
+    function isValidSave(data) {
+      return hasRequiredFields(['playerStats', 'playerPos', 'currentMapId', 'inventory', 'updatedAt']) &&
+             data.currentMapId is string && data.currentMapId.size() > 0 &&
+             data.inventory is list &&
+             data.updatedAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /players/{userId} {
+      // Public profiles for multiplayer/leaderboard
+      allow read: if isAuthenticated();
+      
+      allow create: if isOwner(userId) && isValidPlayer(request.resource.data);
+      allow update: if isOwner(userId) && isValidPlayer(request.resource.data);
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    match /saves/{userId} {
+      // Private saves
+      allow read: if isOwner(userId) || isAdmin();
+      
+      allow create: if isOwner(userId) && isValidSave(request.resource.data);
+      allow update: if isOwner(userId) && isValidSave(request.resource.data);
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+
+    // Default Deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -47,11 +47,15 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
               <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Equipment</h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center border border-slate-700">
+                  <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center border border-slate-700 overflow-hidden">
                     {equippedWeapon ? (
-                      <span className={`text-2xl ${equippedWeapon.id === 'poison_steel_sword' ? 'poison-sword-tint' : ''}`}>
-                        {equippedWeapon.sprite}
-                      </span>
+                      equippedWeapon.sprite.startsWith('http') ? (
+                        <img src={equippedWeapon.sprite} alt={equippedWeapon.name} className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
+                      ) : (
+                        <span className={`text-2xl ${equippedWeapon.id === 'poison_steel_sword' ? 'poison-sword-tint' : ''}`}>
+                          {equippedWeapon.sprite}
+                        </span>
+                      )
                     ) : (
                       <Sword className="text-slate-600" size={20} />
                     )}
@@ -64,11 +68,15 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
 
                 {equippedAccessory?.baseId === 'sword_holder' && (
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center border border-slate-700">
+                    <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center border border-slate-700 overflow-hidden">
                       {secondaryWeapon ? (
-                        <span className={`text-2xl ${secondaryWeapon.id === 'poison_steel_sword' ? 'poison-sword-tint' : ''}`}>
-                          {secondaryWeapon.sprite}
-                        </span>
+                        secondaryWeapon.sprite.startsWith('http') ? (
+                          <img src={secondaryWeapon.sprite} alt={secondaryWeapon.name} className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
+                        ) : (
+                          <span className={`text-2xl ${secondaryWeapon.id === 'poison_steel_sword' ? 'poison-sword-tint' : ''}`}>
+                            {secondaryWeapon.sprite}
+                          </span>
+                        )
                       ) : (
                         <Sword className="text-slate-600 opacity-50" size={20} />
                       )}
@@ -81,8 +89,14 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
                 )}
 
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center border border-slate-700">
-                    {equippedArmor ? <span className="text-2xl">{equippedArmor.sprite}</span> : <Shield className="text-slate-600" size={20} />}
+                  <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center border border-slate-700 overflow-hidden">
+                    {equippedArmor ? (
+                      equippedArmor.sprite.startsWith('http') ? (
+                        <img src={equippedArmor.sprite} alt={equippedArmor.name} className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
+                      ) : (
+                        <span className="text-2xl">{equippedArmor.sprite}</span>
+                      )
+                    ) : <Shield className="text-slate-600" size={20} />}
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 font-bold uppercase">Armor</p>
@@ -90,8 +104,14 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center border border-slate-700">
-                    {equippedAccessory ? <span className="text-2xl">{equippedAccessory.sprite}</span> : <div className="text-slate-600 text-xs font-bold">RING</div>}
+                  <div className="w-12 h-12 bg-slate-900 rounded-lg flex items-center justify-center border border-slate-700 overflow-hidden">
+                    {equippedAccessory ? (
+                      equippedAccessory.sprite.startsWith('http') ? (
+                        <img src={equippedAccessory.sprite} alt={equippedAccessory.name} className="w-full h-full object-contain p-1" referrerPolicy="no-referrer" />
+                      ) : (
+                        <span className="text-2xl">{equippedAccessory.sprite}</span>
+                      )
+                    ) : <div className="text-slate-600 text-xs font-bold">RING</div>}
                   </div>
                   <div>
                     <p className="text-xs text-slate-500 font-bold uppercase">Accessory</p>
@@ -140,9 +160,15 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
                     className="bg-slate-800/30 border border-slate-700 p-4 rounded-xl flex items-center justify-between group hover:bg-slate-800/50 transition-all"
                   >
                     <div className="flex items-center gap-4">
-                      <span className={`text-3xl ${item.id === 'poison_steel_sword' ? 'poison-sword-tint' : ''}`}>
-                        {item.sprite}
-                      </span>
+                      <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
+                        {item.sprite.startsWith('http') ? (
+                          <img src={item.sprite} alt={item.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
+                        ) : (
+                          <span className={`text-3xl ${item.id === 'poison_steel_sword' ? 'poison-sword-tint' : ''}`}>
+                            {item.sprite}
+                          </span>
+                        )}
+                      </div>
                       <div>
                         <p className="text-white font-bold text-sm">{item.name}</p>
                         <p className="text-slate-500 text-xs">{item.description}</p>

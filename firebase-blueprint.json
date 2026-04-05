@@ -1,0 +1,56 @@
+{
+  "entities": {
+    "Player": {
+      "title": "Player",
+      "description": "Public player data for multiplayer and leaderboard.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Display name of the player." },
+        "level": { "type": "integer", "description": "Current player level." },
+        "gold": { "type": "integer", "description": "Current gold amount." },
+        "pos": {
+          "type": "object",
+          "properties": {
+            "x": { "type": "integer" },
+            "y": { "type": "integer" }
+          },
+          "required": ["x", "y"]
+        },
+        "mapId": { "type": "string", "description": "Current map ID." },
+        "lastSeen": { "type": "string", "format": "date-time", "description": "Last activity timestamp." }
+      },
+      "required": ["name", "level", "gold", "pos", "mapId", "lastSeen"]
+    },
+    "SaveData": {
+      "title": "SaveData",
+      "description": "Full game state for cloud saving.",
+      "type": "object",
+      "properties": {
+        "playerStats": { "type": "object" },
+        "playerPos": { "type": "object" },
+        "currentMapId": { "type": "string" },
+        "inventory": { "type": "array", "items": { "type": "object" } },
+        "equippedWeapon": { "type": "object" },
+        "secondaryWeapon": { "type": "object" },
+        "equippedArmor": { "type": "object" },
+        "equippedAccessory": { "type": "object" },
+        "bossesDefeated": { "type": "array", "items": { "type": "string" } },
+        "azeranJoined": { "type": "boolean" },
+        "finneganJoined": { "type": "boolean" },
+        "quests": { "type": "array", "items": { "type": "object" } },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["playerStats", "playerPos", "currentMapId", "inventory", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/players/{userId}": {
+      "schema": "Player",
+      "description": "Public player profiles for multiplayer and leaderboard."
+    },
+    "/saves/{userId}": {
+      "schema": "SaveData",
+      "description": "Private game save data."
+    }
+  }
+}

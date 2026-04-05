@@ -11,9 +11,11 @@ interface HUDProps {
   onInventoryOpen: () => void;
   onQuestsOpen: () => void;
   onStoryOpen: () => void;
+  onSave: () => void;
+  onLoad: () => void;
 }
 
-export const HUD: React.FC<HUDProps> = ({ stats, locationName, isMuted, onMuteToggle, onInventoryOpen, onQuestsOpen, onStoryOpen }) => {
+export const HUD: React.FC<HUDProps> = ({ stats, locationName, isMuted, onMuteToggle, onInventoryOpen, onQuestsOpen, onStoryOpen, onSave, onLoad }) => {
   const hpPercent = (stats.hp / stats.maxHp) * 100;
 
   return (
@@ -69,6 +71,22 @@ export const HUD: React.FC<HUDProps> = ({ stats, locationName, isMuted, onMuteTo
             >
               <Backpack size={20} />
               <span className="text-xs font-bold uppercase hidden sm:inline">Items</span>
+            </button>
+            <button 
+              onClick={onSave}
+              className="p-2 bg-emerald-900/40 hover:bg-emerald-800/50 text-emerald-400 rounded-lg border border-emerald-700 transition-all flex items-center gap-2"
+              title="Save Game"
+            >
+              <Shield size={20} />
+              <span className="text-xs font-bold uppercase hidden sm:inline">Save</span>
+            </button>
+            <button 
+              onClick={onLoad}
+              className="p-2 bg-blue-900/40 hover:bg-blue-800/50 text-blue-400 rounded-lg border border-blue-700 transition-all flex items-center gap-2"
+              title="Load Game"
+            >
+              <Zap size={20} />
+              <span className="text-xs font-bold uppercase hidden sm:inline">Load</span>
             </button>
             <button 
               onClick={onMuteToggle}
