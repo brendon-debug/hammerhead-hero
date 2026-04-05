@@ -33,6 +33,7 @@ export interface Item {
     gold?: number;
     exp?: number;
   };
+  quantity?: number;
 }
 
 export interface Quest {

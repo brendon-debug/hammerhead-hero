@@ -576,10 +576,15 @@ export const CombatOverlay: React.FC<CombatOverlayProps> = ({
                     key={`${item.id}-${idx}`}
                     onClick={() => useConsumable(item)}
                     disabled={isAnimating}
-                    className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 p-2 rounded-lg border border-slate-700 transition-all min-w-[60px] group"
+                    className="flex flex-col items-center gap-1 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 p-2 rounded-lg border border-slate-700 transition-all min-w-[60px] group relative"
                   >
                     <span className="text-xl group-hover:scale-110 transition-transform">{item.sprite}</span>
                     <span className="text-[8px] font-bold text-white text-center leading-tight">{item.name}</span>
+                    {item.quantity && item.quantity > 1 && (
+                      <div className="absolute -top-1 -right-1 bg-sky-600 text-white text-[8px] font-black px-1 rounded-full border border-sky-400">
+                        {item.quantity}
+                      </div>
+                    )}
                   </button>
                 ))
               )}

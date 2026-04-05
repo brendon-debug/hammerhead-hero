@@ -109,13 +109,18 @@ export const ShopOverlay: React.FC<ShopOverlayProps> = ({
                     className="bg-slate-800/30 border border-slate-700 p-4 rounded-xl flex items-center justify-between group hover:bg-slate-800/50 transition-all"
                   >
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 flex items-center justify-center overflow-hidden">
+                      <div className="relative w-12 h-12 flex items-center justify-center overflow-hidden">
                         {item.sprite.startsWith('http') ? (
                           <img src={item.sprite} alt={item.name} className="w-full h-full object-contain" referrerPolicy="no-referrer" />
                         ) : (
                           <span className={`text-3xl ${item.id === 'poison_steel_sword' ? 'poison-sword-tint' : ''}`}>
                             {item.sprite}
                           </span>
+                        )}
+                        {item.quantity && item.quantity > 1 && (
+                          <div className="absolute -bottom-1 -right-1 bg-sky-600 text-white text-[8px] font-black px-1 rounded-full border border-sky-400">
+                            x{item.quantity}
+                          </div>
                         )}
                       </div>
                       <div>

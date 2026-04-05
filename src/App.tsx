@@ -38,15 +38,36 @@ export default function App() {
 
   // New States
   const [inventory, setInventory] = useState<Item[]>([
-    { ...ITEMS.kelp, id: 'kelp_1', baseId: 'kelp' },
-    { ...ITEMS.kelp, id: 'kelp_2', baseId: 'kelp' }
+    { ...ITEMS.kelp, id: 'kelp_1', baseId: 'kelp', quantity: 2 }
   ]);
 
   const createInventoryItem = (item: Item): Item => ({
     ...item,
     baseId: item.baseId || item.id,
-    id: `${item.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    id: `${item.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    quantity: item.quantity || 1
   });
+
+  const addToInventory = (items: Item[]) => {
+    setInventory(prev => {
+      let newInv = [...prev];
+      items.forEach(itemToAdd => {
+        if (itemToAdd.type === 'consumable') {
+          const existingIdx = newInv.findIndex(i => i.baseId === (itemToAdd.baseId || itemToAdd.id));
+          if (existingIdx !== -1) {
+            const existing = { ...newInv[existingIdx] };
+            existing.quantity = (existing.quantity || 1) + (itemToAdd.quantity || 1);
+            newInv[existingIdx] = existing;
+          } else {
+            newInv.push({ ...itemToAdd, quantity: itemToAdd.quantity || 1, baseId: itemToAdd.baseId || itemToAdd.id });
+          }
+        } else {
+          newInv.push(itemToAdd);
+        }
+      });
+      return newInv;
+    });
+  };
   const [equippedWeapon, setEquippedWeapon] = useState<Item | null>(null);
   const [secondaryWeapon, setSecondaryWeapon] = useState<Item | null>(null);
   const [equippedArmor, setEquippedArmor] = useState<Item | null>(null);
@@ -248,7 +269,7 @@ export default function App() {
     } else if (entity.type === 'chest') {
       if (entity.loot) {
         const newItems = entity.loot.map(createInventoryItem);
-        setInventory(prev => [...prev, ...newItems]);
+        addToInventory(newItems);
         const updatedEntities = currentMap.entities.map(en => 
           en.id === entity.id ? { ...en, isDead: true } : en
         );
@@ -372,7 +393,7 @@ export default function App() {
       
       if (activeCombat.loot) {
         const newLoot = activeCombat.loot.map(createInventoryItem);
-        setInventory(prev => [...prev, ...newLoot]);
+        addToInventory(newLoot);
         // Check for quest items in loot
         newLoot.forEach(item => {
           updateQuestProgressByTarget(item.baseId || item.id, 1);
@@ -548,7 +569,13 @@ export default function App() {
           const idx = prev.findIndex(i => i.id === item.id);
           if (idx === -1) return prev;
           const newInv = [...prev];
-          newInv.splice(idx, 1);
+          const existing = { ...newInv[idx] };
+          if (existing.quantity && existing.quantity > 1) {
+            existing.quantity -= 1;
+            newInv[idx] = existing;
+          } else {
+            newInv.splice(idx, 1);
+          }
           return newInv;
         });
       }
@@ -559,7 +586,7 @@ export default function App() {
     if (playerStats.gold >= item.value) {
       sounds.playBuy();
       setPlayerStats(prev => ({ ...prev, gold: prev.gold - item.value }));
-      setInventory(prev => [...prev, createInventoryItem(item)]);
+      addToInventory([createInventoryItem(item)]);
     }
   };
 
@@ -577,8 +604,15 @@ export default function App() {
     sounds.playBuy();
     setInventory(prev => {
       const idx = prev.findIndex(i => i.id === item.id);
+      if (idx === -1) return prev;
       const newInv = [...prev];
-      newInv.splice(idx, 1);
+      const existing = { ...newInv[idx] };
+      if (existing.quantity && existing.quantity > 1) {
+        existing.quantity -= 1;
+        newInv[idx] = existing;
+      } else {
+        newInv.splice(idx, 1);
+      }
       return newInv;
     });
   };

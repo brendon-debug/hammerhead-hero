@@ -208,6 +208,11 @@ export const InventoryScreen: React.FC<InventoryScreenProps> = ({
                               {item.sprite}
                             </span>
                           )}
+                          {item.quantity && item.quantity > 1 && (
+                            <div className="absolute -bottom-1 -right-1 bg-sky-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full shadow-lg border border-sky-400 z-10">
+                              x{item.quantity}
+                            </div>
+                          )}
                           {isEquipped && (
                             <div className="absolute -top-1 -right-1 bg-emerald-500 text-white rounded-full p-0.5 shadow-lg">
                               <Shield size={10} />
