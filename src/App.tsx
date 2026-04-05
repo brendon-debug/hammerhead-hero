@@ -678,8 +678,16 @@ export default function App() {
             className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-900 p-8 text-center overflow-hidden"
           >
             {/* Underwater Background */}
-            <div className="absolute inset-0 bg-gradient-to-b from-sky-900 to-slate-950 z-0" />
-            <div className="absolute inset-0 caustics-overlay opacity-30 z-10" />
+            <div className="absolute inset-0 z-0">
+              <img 
+                src="/assets/images/ui/logo.png" 
+                alt="" 
+                className="w-full h-full object-cover opacity-60"
+                referrerPolicy="no-referrer"
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-slate-950/40 via-slate-950/60 to-slate-950" />
+            </div>
+            <div className="absolute inset-0 caustics-overlay opacity-20 z-10" />
             
             {/* Bubbles */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden z-20">
@@ -698,15 +706,10 @@ export default function App() {
               ))}
             </div>
 
-              <div className="relative z-30 flex flex-col items-center gap-6">
-                <h1 className="text-6xl md:text-8xl font-black text-white mb-4 tracking-tighter drop-shadow-[0_0_20px_rgba(14,165,233,0.5)]">
-                  HAMMERHEAD <span className="text-emerald-400">HERO</span>
-                </h1>
-              <p className="text-xl text-sky-200 mb-8 max-w-xl drop-shadow-md">
-                A sword-wielding shark in a world of goblins. 
-                Defeat the Queen, the Diamond Gorilla, Bob the Dragon, and the Corrupted Abyssal Maw.
+              <div className="relative z-30 flex flex-col items-center gap-6 mt-20">
+              <p style={{marginBottom: '100px'}}>
+                &nbsp;
               </p>
-              
               <div className="flex flex-col sm:flex-row gap-4">
                 <button 
                   onClick={startGame}
@@ -733,6 +736,11 @@ export default function App() {
                   </div>
                 )}
               </div>
+
+              <p className="text-2xl text-sky-100 mb-8 max-w-2xl drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] font-medium">
+                A sword-wielding shark in a world of goblins. 
+                <br />Fight your way to the Abyssal Maw to defeat the darkness.
+              </p>
 
               <button 
                 onClick={fetchLeaderboard}

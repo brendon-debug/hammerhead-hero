@@ -539,6 +539,7 @@ for(let i=0; i<3; i++) {
     name: 'Treasure Chest',
     pos: pos,
     sprite: '🎁',
+    spriteUrl: 'https://img.icons8.com/color/512/treasure-chest.png',
     loot: [ITEMS.kelp, Math.random() > 0.5 ? ITEMS.leather_armor : ITEMS.rusty_sword]
   });
 }
@@ -614,6 +615,7 @@ for(let i=0; i<3; i++) {
     name: 'Treasure Chest',
     pos: pos,
     sprite: '🎁',
+    spriteUrl: 'https://img.icons8.com/color/512/treasure-chest.png',
     loot: [i === 0 ? ITEMS.ancient_ring : ITEMS.kelp, Math.random() > 0.5 ? ITEMS.kelp : ITEMS.kelp]
   });
 }
@@ -693,6 +695,7 @@ for(let i=0; i<3; i++) {
     name: 'Treasure Chest',
     pos: pos,
     sprite: '🎁',
+    spriteUrl: 'https://img.icons8.com/color/512/treasure-chest.png',
     loot: [ITEMS.kelp, ITEMS.kelp]
   });
 }
@@ -773,6 +776,7 @@ for(let i=0; i<4; i++) {
     name: 'Treasure Chest',
     pos: pos,
     sprite: '🎁',
+    spriteUrl: 'https://img.icons8.com/color/512/treasure-chest.png',
     loot: [ITEMS.kelp, ITEMS.kelp]
   });
 }

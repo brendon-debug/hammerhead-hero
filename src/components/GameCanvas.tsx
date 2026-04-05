@@ -26,6 +26,7 @@ interface GameCanvasProps {
 
 export const GameCanvas: React.FC<GameCanvasProps> = ({ map, playerPos, otherPlayers = [], azeranJoined, finneganJoined, equippedWeapon, secondaryWeapon, onMove, onInteract }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageCache = useRef<Record<string, HTMLImageElement>>({});
   const [moveHistory, setMoveHistory] = useState<Position[]>([playerPos]);
 
   useEffect(() => {
@@ -119,13 +120,14 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ map, playerPos, otherPla
         }
       }
 
-      const visibleEntities: { type: string; sprite: string; pos: Position; id?: string }[] = [];
+      const visibleEntities: { type: string; sprite: string; spriteUrl?: string; pos: Position; id?: string }[] = [];
       map.entities.forEach(entity => {
         if (entity.isDead) return;
         if (entity.id === 'azeran' && azeranJoined) return;
         visibleEntities.push({ 
           type: entity.type, 
           sprite: entity.sprite || (entity.type === 'chest' ? '📦' : '?'), 
+          spriteUrl: entity.spriteUrl,
           pos: entity.pos,
           id: entity.id
         });
@@ -160,51 +162,84 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({ map, playerPos, otherPla
         ctx.textBaseline = 'bottom';
         
         const yOffset = -5;
-        ctx.shadowColor = 'white';
-        ctx.shadowBlur = 4;
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = 'white';
-        ctx.strokeText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
-        
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = 'black';
-        
-        if (entity.id === 'boss_fish') {
-          ctx.save();
-          ctx.filter = 'sepia(1) saturate(10) hue-rotate(240deg) brightness(0.7) contrast(1.5)';
-          ctx.shadowColor = '#a855f7';
-          ctx.shadowBlur = 35;
-          ctx.fillText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
-          ctx.restore();
-        } else if (entity.type === 'goblin' || entity.type === 'hobgoblin') {
-          ctx.save();
-          ctx.shadowColor = '#ef4444';
-          ctx.shadowBlur = 8;
-          ctx.fillText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
-          ctx.restore();
-        } else if (entity.type === 'giant_crab') {
-          ctx.save();
-          ctx.shadowColor = '#fb923c';
-          ctx.shadowBlur = 10;
-          ctx.fillText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
-          ctx.restore();
-        } else if (entity.type === 'other_player') {
-          ctx.save();
-          ctx.shadowColor = '#0ea5e9';
-          ctx.shadowBlur = 15;
-          ctx.fillText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
-          
-          // Draw name tag
-          const otherPlayer = otherPlayers.find(p => p.id === entity.id);
-          if (otherPlayer) {
-            ctx.font = 'bold 12px sans-serif';
-            ctx.fillStyle = 'white';
-            ctx.shadowBlur = 0;
-            ctx.fillText(otherPlayer.name, drawX, drawY - 25);
+
+        if (entity.spriteUrl) {
+          if (!imageCache.current[entity.spriteUrl]) {
+            const img = new Image();
+            img.src = entity.spriteUrl;
+            img.onload = () => {
+              // Image loaded, will render on next frame
+            };
+            imageCache.current[entity.spriteUrl] = img;
           }
-          ctx.restore();
+
+          const img = imageCache.current[entity.spriteUrl];
+          if (img.complete) {
+            ctx.drawImage(img, drawX - TILE_SIZE / 2, drawY - TILE_SIZE / 2, TILE_SIZE, TILE_SIZE);
+          } else {
+            ctx.font = 'bold 36px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.shadowColor = 'white';
+            ctx.shadowBlur = 4;
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = 'white';
+            ctx.strokeText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = 'black';
+            ctx.fillText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
+          }
         } else {
-          ctx.fillText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
+          ctx.font = 'bold 36px serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          
+          ctx.shadowColor = 'white';
+          ctx.shadowBlur = 4;
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = 'white';
+          ctx.strokeText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
+          
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = 'black';
+          
+          if (entity.id === 'boss_fish') {
+            ctx.save();
+            ctx.filter = 'sepia(1) saturate(10) hue-rotate(240deg) brightness(0.7) contrast(1.5)';
+            ctx.shadowColor = '#a855f7';
+            ctx.shadowBlur = 35;
+            ctx.fillText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
+            ctx.restore();
+          } else if (entity.type === 'goblin' || entity.type === 'hobgoblin') {
+            ctx.save();
+            ctx.shadowColor = '#ef4444';
+            ctx.shadowBlur = 8;
+            ctx.fillText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
+            ctx.restore();
+          } else if (entity.type === 'giant_crab') {
+            ctx.save();
+            ctx.shadowColor = '#fb923c';
+            ctx.shadowBlur = 10;
+            ctx.fillText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
+            ctx.restore();
+          } else if (entity.type === 'other_player') {
+            ctx.save();
+            ctx.shadowColor = '#0ea5e9';
+            ctx.shadowBlur = 15;
+            ctx.fillText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
+            
+            // Draw name tag
+            const otherPlayer = otherPlayers.find(p => p.id === entity.id);
+            if (otherPlayer) {
+              ctx.font = 'bold 12px sans-serif';
+              ctx.fillStyle = 'white';
+              ctx.shadowBlur = 0;
+              ctx.fillText(otherPlayer.name, drawX, drawY - 25);
+            }
+            ctx.restore();
+          } else {
+            ctx.fillText(entity.sprite, drawX, drawY + TILE_SIZE / 2 + yOffset);
+          }
         }
 
         if (entity.type === 'player') {

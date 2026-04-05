@@ -65,6 +65,7 @@ export interface Entity {
   isDead?: boolean;
   loot?: Item[];
   questId?: string; // Quest this NPC gives
+  spriteUrl?: string;
 }
 
 export type GameState = 'start' | 'playing' | 'dialogue' | 'combat' | 'town' | 'gameover' | 'victory' | 'inventory' | 'shop' | 'quests' | 'boss_rush';
